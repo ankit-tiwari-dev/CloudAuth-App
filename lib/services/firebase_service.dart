@@ -1,14 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart' if (dart.library.html) 'google_sign_in_stub.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart'
+    if (dart.library.html) 'google_sign_in_stub.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import '../models/user_model.dart';
 import 'local_storage_service.dart';
 
 class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   // Stream to listen to auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -20,25 +21,24 @@ class FirebaseService {
   Future<UserModel?> signInWithGoogle() async {
     try {
       UserCredential userCredential;
-      
+
       if (kIsWeb) {
-         // Use GoogleAuthProvider directly on Web
-         GoogleAuthProvider googleProvider = GoogleAuthProvider();
-         userCredential = await _auth.signInWithPopup(googleProvider);
+        // Use GoogleAuthProvider directly on Web
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        userCredential = await _auth.signInWithPopup(googleProvider);
       } else {
-         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-         if (googleUser == null) return null; // User canceled the sign-in
+        final GoogleSignInAccount googleUser =
+            await _googleSignIn.authenticate();
 
-         final GoogleSignInAuthentication googleAuth =
-             await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            googleUser.authentication;
 
-         final OAuthCredential credential = GoogleAuthProvider.credential(
-           accessToken: googleAuth.accessToken,
-           idToken: googleAuth.idToken,
-         );
-         userCredential = await _auth.signInWithCredential(credential);
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await _auth.signInWithCredential(credential);
       }
-      
+
       final User? user = userCredential.user;
 
       if (user != null) {
@@ -52,7 +52,7 @@ class FirebaseService {
 
         // Store or update user in Firestore
         await createUserInFirestore(userModel);
-        
+
         // Save auth state locally
         await LocalStorageService.setLoggedIn(true);
 
@@ -60,13 +60,14 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('Error signing in with Google: $e');
+      debugPrint('Error signing in with Google: $e');
       rethrow;
     }
   }
 
   // Register with Email Password
-  Future<UserModel?> registerWithEmail(String email, String password, String name) async {
+  Future<UserModel?> registerWithEmail(
+      String email, String password, String name) async {
     try {
       final UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
@@ -77,7 +78,7 @@ class FirebaseService {
 
       if (user != null) {
         await user.updateDisplayName(name);
-        
+
         UserModel userModel = UserModel(
           uid: user.uid,
           email: user.email ?? '',
@@ -91,7 +92,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('Error registering with Email: $e');
+      debugPrint('Error registering with Email: $e');
       rethrow;
     }
   }
@@ -107,15 +108,15 @@ class FirebaseService {
       final User? user = userCredential.user;
 
       if (user != null) {
-         Map<String, dynamic>? userData = await getUserFromFirestore(user.uid);
-         if (userData != null) {
-             await LocalStorageService.setLoggedIn(true);
-             return UserModel.fromJson(userData);
-         }
+        Map<String, dynamic>? userData = await getUserFromFirestore(user.uid);
+        if (userData != null) {
+          await LocalStorageService.setLoggedIn(true);
+          return UserModel.fromJson(userData);
+        }
       }
       return null;
     } catch (e) {
-      print('Error logging in with Email: $e');
+      debugPrint('Error logging in with Email: $e');
       rethrow;
     }
   }
@@ -129,7 +130,7 @@ class FirebaseService {
       await _auth.signOut();
       await LocalStorageService.setLoggedIn(false);
     } catch (e) {
-      print('Error signing out: $e');
+      debugPrint('Error signing out: $e');
       rethrow;
     }
   }
@@ -142,7 +143,7 @@ class FirebaseService {
             SetOptions(merge: true),
           );
     } catch (e) {
-      print('Error saving user to Firestore: $e');
+      debugPrint('Error saving user to Firestore: $e');
       rethrow;
     }
   }
@@ -156,7 +157,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('Error fetching user from Firestore: $e');
+      debugPrint('Error fetching user from Firestore: $e');
       return null;
     }
   }
