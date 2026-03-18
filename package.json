@@ -1,0 +1,11 @@
+{
+  "name": "cloudauth-app-web",
+  "private": true,
+  "scripts": {
+    "build": "bash vercel_build.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
