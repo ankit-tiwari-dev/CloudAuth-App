@@ -1,17 +1,9 @@
-// Stub for google_sign_in on web — all sign-in is handled via
-// GoogleAuthProvider / signInWithPopup, so these types only need to
-// exist to satisfy the analyzer.
+// Stub for google_sign_in on web. Web sign-in uses GoogleAuthProvider.
 
 class GoogleSignIn {
   GoogleSignIn._();
-  static final GoogleSignIn instance = GoogleSignIn._();
 
-  Future<void> initialize({
-    String? clientId,
-    String? serverClientId,
-    String? nonce,
-    String? hostedDomain,
-  }) async {}
+  static final GoogleSignIn instance = GoogleSignIn._();
 
   Future<GoogleSignInAccount> authenticate({
     List<String> scopeHint = const <String>[],
@@ -29,5 +21,6 @@ class GoogleSignInAccount {
 
 class GoogleSignInAuthentication {
   const GoogleSignInAuthentication({required this.idToken});
+
   final String? idToken;
 }
